@@ -48,6 +48,10 @@ func runIPs() {
 		}
 	}()
 
+	for _, ip := range IPs {
+		lostedIPs.Store(ip, struct{}{})
+	}
+
 	// var wg sync.WaitGroup
 	var tk Token
 
@@ -56,14 +60,16 @@ func runIPs() {
 	for _, ip := range IPs {
 		wg.Add(1)
 
-		lostedIPs.Store(ip, struct{}{})
-
 		if debugMode {
 			fmt.Printf(
 				"Borrow token: ip[ %s ], freeTokenCount[ %d ]\n",
 				ip, Tp.FreeCount())
 		}
 		tk = Tp.Borrow()
+
+		if sig != nil {
+			return
+		}
 
 		go doCommand(ip, tk, wg.Done)
 	}

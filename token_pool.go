@@ -1,10 +1,8 @@
 package main
 
 import (
-	// "fmt"
 	"sync"
 	"sync/atomic"
-	// "time"
 )
 
 const (
@@ -21,6 +19,10 @@ type TokenPool struct {
 	WorkCount int32
 	size      int
 	release   int32
+}
+
+type Token struct {
+	QueueNum int
 }
 
 func NewTokenPool(size int) {
@@ -43,8 +45,6 @@ func NewTokenPool(size int) {
 
 func (tp *TokenPool) ResetTokenPool(f func()) {
 	tp.WorkQueue.Range(func(k, v interface{}) bool {
-		// fmt.Println(k)
-		// fmt.Println(v)
 		t, ok := v.(Token)
 		if !ok {
 			return true
@@ -59,7 +59,6 @@ func (tp *TokenPool) ResetTokenPool(f func()) {
 
 func (tp *TokenPool) Back(t Token) {
 	tp.WorkQueue.Delete(t.QueueNum)
-	t.clearTakeTime()
 	tp.queue <- t
 	atomic.AddInt32(&(tp.WorkCount), -1)
 
@@ -70,7 +69,6 @@ func (tp *TokenPool) Back(t Token) {
 
 func (tp *TokenPool) Borrow() Token {
 	t := <-tp.queue
-	t.setTakeTime()
 	tp.WorkQueue.Store(t.QueueNum, t)
 	atomic.AddInt32(&(tp.WorkCount), 1)
 	return t
