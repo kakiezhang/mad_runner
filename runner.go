@@ -16,8 +16,8 @@ total[ %d ], success[ %d ], losted[ %d ], failed[ %d ]
 var (
 	hookCommand = `export ip=%s; %s`
 
-	lostedIPs sync.Map
 	resultIPs sync.Map
+	lostedIPs sync.Map
 	doneCount int32
 )
 
@@ -128,6 +128,8 @@ func runStats() {
 		lostedNum:  0,
 		lostedHost: "",
 	}
+	mrs.statNormal()
+	mrs.statLosted()
 
 	fmt.Printf(STATSFINAL,
 		totalCount, mrs.successNum, mrs.lostedNum, mrs.totalFailedNum)
@@ -143,8 +145,8 @@ func runStats() {
 	}
 }
 
-func (mrs *mrStats) statNormal(ips sync.Map) {
-	ips.Range(func(k, v interface{}) bool {
+func (mrs *mrStats) statNormal() {
+	resultIPs.Range(func(k, v interface{}) bool {
 		ip, ok := k.(string)
 		if !ok {
 			return true
@@ -169,8 +171,8 @@ func (mrs *mrStats) statNormal(ips sync.Map) {
 	})
 }
 
-func (mrs *mrStats) statLosted(ips sync.Map) {
-	ips.Range(func(k, v interface{}) bool {
+func (mrs *mrStats) statLosted() {
+	lostedIPs.Range(func(k, v interface{}) bool {
 		ip, ok := k.(string)
 		if !ok {
 			return true
