@@ -1,0 +1,6 @@
+*.sw[op]
+*.out
+*.log
+*.err
+*.ips
+*.sh
