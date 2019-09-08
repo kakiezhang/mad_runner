@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -52,7 +53,9 @@ func runIPs() {
 		lostedIPs.Store(ip, struct{}{})
 
 		if debugMode {
-			fmt.Printf("Borrow token: ip[ %s ], freeTokenCount[ %d ]\n", ip, Tp.FreeCount())
+			fmt.Printf(
+				"Borrow token: ip[ %s ], freeTokenCount[ %d ]\n",
+				ip, Tp.FreeCount())
 		}
 		tk = Tp.Borrow()
 
@@ -85,7 +88,8 @@ func doCommand(ip string, tk Token, deferFunc func()) {
 			slimErr: "",
 		})
 		debugMsg = fmt.Sprintf(
-			"Execute ok: ip[ %s ], res[ %s ]\n", ip, res)
+			"Execute ok: ip[ %s ], res[ %s ]\n",
+			ip, strings.TrimSpace(res))
 
 	} else {
 		resultIPs.Store(ip, commandResult{
@@ -93,7 +97,8 @@ func doCommand(ip string, tk Token, deferFunc func()) {
 			slimErr: err[:30],
 		})
 		debugMsg = fmt.Sprintf(
-			"Execute failed: ip[ %s ], err[ %s ]\n", ip, err)
+			"Execute failed: ip[ %s ], err[ %s ]\n",
+			ip, strings.TrimSpace(err))
 	}
 
 	if debugMode {
