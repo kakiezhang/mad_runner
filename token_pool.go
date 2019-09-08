@@ -4,12 +4,11 @@ import (
 	// "fmt"
 	"sync"
 	"sync/atomic"
-	"time"
+	// "time"
 )
 
 const (
-	DefaultTokenPoolSize   = 200
-	DefaultTokenExpireSecs = 3
+	DefaultTokenPoolSize = 200
 )
 
 var (
@@ -24,12 +23,9 @@ type TokenPool struct {
 	release   int32
 }
 
-func NewTokenPool(size, expirySecs int) {
+func NewTokenPool(size int) {
 	if size <= 0 {
 		size = DefaultTokenPoolSize
-	}
-	if expirySecs <= 0 {
-		expirySecs = DefaultTokenExpireSecs
 	}
 
 	Tp = &TokenPool{
@@ -43,45 +39,22 @@ func NewTokenPool(size, expirySecs int) {
 		}
 		Tp.queue <- t
 	}
-
-	go Tp.PriodicExpire(expirySecs)
 }
 
-func (tp *TokenPool) PriodicExpire(secs int) {
-	expiry := time.Duration(secs) * time.Second
-	heartbeat := time.NewTicker(expiry)
-	defer heartbeat.Stop()
-
-	for range heartbeat.C {
-		currentTime := time.Now().Unix()
-		// fmt.Println(currentTime)
-
-		if atomic.LoadInt32(&(tp.release)) == 1 {
-			break
+func (tp *TokenPool) ResetTokenPool(f func()) {
+	tp.WorkQueue.Range(func(k, v interface{}) bool {
+		// fmt.Println(k)
+		// fmt.Println(v)
+		t, ok := v.(Token)
+		if !ok {
+			return true
 		}
 
-		tp.WorkQueue.Range(func(k, v interface{}) bool {
-			// fmt.Println(k)
-			// fmt.Println(v)
-			t, ok := v.(Token)
-			if !ok {
-				return true
-			}
+		tp.Back(t)
+		f()
 
-			// fmt.Printf("takeTime: %d\n", t.takeTime)
-
-			if t.takeTime <= 0 {
-				return true
-			}
-			if currentTime-t.takeTime <= int64(secs) {
-				return true
-			}
-
-			tp.Back(t)
-
-			return true
-		})
-	}
+		return true
+	})
 }
 
 func (tp *TokenPool) Back(t Token) {

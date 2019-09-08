@@ -42,10 +42,16 @@ type mrStats struct {
 }
 
 func runIPs() {
-	var wg sync.WaitGroup
+	defer func() {
+		if sig == nil {
+			close(cleanupDone)
+		}
+	}()
+
+	// var wg sync.WaitGroup
 	var tk Token
 
-	NewTokenPool(gPoolSize, gExpirySecs)
+	NewTokenPool(gPoolSize)
 
 	for _, ip := range IPs {
 		wg.Add(1)

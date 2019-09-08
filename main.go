@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -12,6 +14,12 @@ var (
 	IPs = []string{}
 
 	totalCount int
+
+	cleanupDone = make(chan struct{})
+
+	sig os.Signal
+
+	wg sync.WaitGroup
 
 	// parameters
 	help      bool
@@ -22,7 +30,6 @@ var (
 
 	userCommand string
 	gPoolSize   int
-	gExpirySecs int
 )
 
 func init() {
@@ -35,12 +42,10 @@ func init() {
 	flag.StringVar(&userCommand, "c", "", "a command required which could get a hook param $ip")
 
 	flag.IntVar(&gPoolSize, "g", DefaultTokenPoolSize, "goroutine pool size")
-	flag.IntVar(&gExpirySecs, "exps", DefaultTokenExpireSecs, "goroutine expire seconds")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, `Mad Runner: 
-Usage: ./madrun -c command [-hv] [-exps expiry_secs] 
-[-p host string] [-i host file] [-c command] [-g concurrent_num]`+"\n"+`
+Usage: ./madrun -c command [-hv] [-g concurrent_num] [-p IP(s)] [-i IP(s) file]`+"\n"+`
 Options:
 `)
 		flag.PrintDefaults()
@@ -71,10 +76,20 @@ func main() {
 		return
 	}
 
+	setupCloseHandler()
+
 	totalCount = len(IPs)
 
 	beforeTime := time.Now()
-	runIPs()
+	go runIPs()
+
+	for {
+		select {
+		case <-cleanupDone:
+			goto loopend
+		}
+	}
+loopend:
 	t1 := time.Since(beforeTime)
 
 	beforeTime = time.Now()
@@ -82,6 +97,17 @@ func main() {
 	t2 := time.Since(beforeTime)
 
 	fmt.Printf("elapsed: runIPs[ %s ] runStats[ %s ]\n", t1, t2)
-
 	return
+}
+
+func setupCloseHandler() {
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt)
+
+	go func() {
+		sig = <-signalChan
+		defer close(cleanupDone)
+		fmt.Println("\nDetected Ctrl+C, please wait a sec...")
+		Tp.ResetTokenPool(wg.Done)
+	}()
 }
