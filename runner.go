@@ -79,7 +79,9 @@ func runIPs() {
 
 func doCommand(ip string, tk Token, deferFunc func()) {
 	defer func() {
-		deferFunc()
+		if sig == nil {
+			deferFunc()
+		}
 	}()
 
 	if debugMode {
@@ -94,6 +96,10 @@ func doCommand(ip string, tk Token, deferFunc func()) {
 	var debugMsg string
 
 	res, err := execShell(cmd)
+	if sig != nil {
+		return
+	}
+
 	if err == "" {
 		resultIPs.Store(ip, commandResult{
 			ok:      true,
@@ -152,9 +158,10 @@ func runStats() {
 		totalCount, mrs.successNum, mrs.lostedNum, mrs.totalFailedNum)
 
 	retryFile := "./retry.ips"
+	writeFile("", retryFile)
 
 	if mrs.totalFailedNum > 0 {
-		writeFile(mrs.totalFailedHost, retryFile)
+		appendFile(mrs.totalFailedHost, retryFile)
 	}
 
 	if mrs.lostedNum > 0 {
