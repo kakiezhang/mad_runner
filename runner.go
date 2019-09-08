@@ -79,9 +79,19 @@ func runIPs() {
 
 func doCommand(ip string, tk Token, deferFunc func()) {
 	defer func() {
-		if sig == nil {
-			deferFunc()
+		Tp.Back(tk)
+		if debugMode {
+			fmt.Printf(
+				"Back token: ip[ %s ], freeTokenCount[ %d ]\n",
+				ip, Tp.FreeCount())
 		}
+
+		deferFunc()
+
+		// must be the last
+		atomic.AddInt32(&doneCount, 1)
+		fmt.Printf("Processed: ip[ %s ], [ %d / %d ]\n",
+			ip, doneCount, totalCount)
 	}()
 
 	if debugMode {
@@ -96,10 +106,6 @@ func doCommand(ip string, tk Token, deferFunc func()) {
 	var debugMsg string
 
 	res, err := execShell(cmd)
-	if sig != nil {
-		return
-	}
-
 	if err == "" {
 		resultIPs.Store(ip, commandResult{
 			ok:      true,
@@ -112,7 +118,7 @@ func doCommand(ip string, tk Token, deferFunc func()) {
 	} else {
 		resultIPs.Store(ip, commandResult{
 			ok:      false,
-			slimErr: err[:30],
+			slimErr: err,
 		})
 		debugMsg = fmt.Sprintf(
 			"Execute failed: ip[ %s ], err[ %s ]\n",
@@ -124,17 +130,6 @@ func doCommand(ip string, tk Token, deferFunc func()) {
 	}
 
 	lostedIPs.Delete(ip)
-
-	Tp.Back(tk)
-	if debugMode {
-		fmt.Printf(
-			"Back token: ip[ %s ], freeTokenCount[ %d ]\n",
-			ip, Tp.FreeCount())
-	}
-
-	atomic.AddInt32(&doneCount, 1)
-	fmt.Printf("Processed: ip[ %s ], [ %d / %d ]\n",
-		ip, doneCount, totalCount)
 }
 
 func runStats() {

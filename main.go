@@ -107,7 +107,19 @@ func setupCloseHandler() {
 	go func() {
 		sig = <-signalChan
 		defer close(cleanupDone)
+
 		fmt.Println("\nDetected Ctrl+C, please wait a sec...")
+
+		ticker := time.NewTicker(time.Second * 2)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			fmt.Printf("SpinCheck: FreeCount[ %d ], WorkCount[ %d ]\n", Tp.FreeCount(), Tp.WorkCount)
+			if Tp.FreeCount()+int(Tp.WorkCount) == gPoolSize {
+				break
+			}
+		}
+
 		Tp.ResetTokenPool(wg.Done)
 	}()
 }
