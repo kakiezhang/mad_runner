@@ -110,11 +110,15 @@ func setupCloseHandler() {
 
 		fmt.Println("\nDetected Ctrl+C, please wait a sec...")
 
-		ticker := time.NewTicker(time.Second * 2)
+		ticker := time.NewTicker(time.Second * 1)
 		defer ticker.Stop()
 
 		for range ticker.C {
-			fmt.Printf("SpinCheck: FreeCount[ %d ], WorkCount[ %d ]\n", Tp.FreeCount(), Tp.WorkCount)
+			if debugMode {
+				fmt.Printf(
+					"SpinCheck: FreeCount[ %d ], WorkCount[ %d ]\n",
+					Tp.FreeCount(), Tp.WorkCount)
+			}
 			if Tp.FreeCount()+int(Tp.WorkCount) == gPoolSize {
 				break
 			}
